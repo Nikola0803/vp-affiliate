@@ -172,7 +172,7 @@ export default function Dashboard() {
     if (!data) return;
     downloadCsv(`referrals-${data.ref_code}-${new Date().toISOString().slice(0, 10)}.csv`, [
       ['Order ID', 'Order Total', 'Commission', 'Status', 'Attribution', 'Date'],
-      ...data.recent.map((r) => [r.order_id, r.order_total, r.commission_amount, r.status, r.attribution || 'link', r.created_at]),
+      ...recent.map((r) => [r.order_id, r.order_total, r.commission_amount, r.status, r.attribution || 'link', r.created_at]),
     ]);
   };
 
@@ -198,7 +198,18 @@ export default function Dashboard() {
     { name: 'Paid', value: Number(data.commission_paid) },
   ];
 
-  const canRequestPayout = data.payout_method && data.payout_destination && data.available_balance >= data.min_payout;
+  // Fall back to empty arrays/objects defensively — e.g. if the WordPress
+  // plugin serving this data hasn't been redeployed to the newer version
+  // yet, these newer fields simply won't be in the response.
+  const recent = data.recent || [];
+  const payouts = data.payouts || [];
+  const topPages = data.top_pages || [];
+  const clicksByDay = data.clicks_by_day || [];
+  const payoutMethods = data.payout_methods || {};
+  const minPayout = data.min_payout ?? 0;
+  const availableBalance = data.available_balance ?? 0;
+
+  const canRequestPayout = !!data.payout_method && !!data.payout_destination && availableBalance >= minPayout;
 
   return (
     <div className="min-h-screen py-10 bg-[var(--vp-bg)]" style={themeCssVars(theme)}>
@@ -338,7 +349,7 @@ export default function Dashboard() {
               Withdraw Your Earnings
             </p>
             <p className="font-mono text-sm font-bold" style={{ color: 'var(--vp-accent)' }}>
-              {money(data.available_balance)} available
+              {money(availableBalance)} available
             </p>
           </div>
 
@@ -361,7 +372,7 @@ export default function Dashboard() {
                 {payoutRequesting ? 'Requesting…' : 'Request Payout'}
               </button>
               <p className="font-[var(--vp-font-body)] text-xs" style={{ color: 'var(--vp-text-muted)' }}>
-                Minimum payout: {money(data.min_payout)} · Sent via {data.payout_methods?.[data.payout_method] || data.payout_method}
+                Minimum payout: {money(minPayout)} · Sent via {payoutMethods[data.payout_method] || data.payout_method}
               </p>
             </div>
           )}
@@ -372,7 +383,7 @@ export default function Dashboard() {
             </p>
           )}
 
-          {data.payouts.length > 0 && (
+          {payouts.length > 0 && (
             <div className="overflow-x-auto mt-5 pt-4 border-t" style={{ borderColor: 'var(--vp-border)' }}>
               <table className="w-full">
                 <thead>
@@ -383,7 +394,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.payouts.map((p) => (
+                  {payouts.map((p) => (
                     <tr key={p.id}>
                       <td className="font-[var(--vp-font-mono)] text-xs pr-4 py-1.5" style={{ color: 'var(--vp-text)' }}>{money(p.amount)}</td>
                       <td className="py-1.5 pr-4">
@@ -424,7 +435,7 @@ export default function Dashboard() {
               Clicks — Last 14 Days
             </p>
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.clicks_by_day}>
+              <LineChart data={clicksByDay}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d4c39a55" />
                 <XAxis dataKey="day" tick={{ fontSize: 9 }} tickFormatter={(d: string) => d.slice(5)} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -436,14 +447,14 @@ export default function Dashboard() {
         </div>
 
         {/* Top landing pages */}
-        {data.top_pages.length > 0 && (
+        {topPages.length > 0 && (
           <div className="border mb-10" style={{ borderColor: 'var(--vp-border)' }}>
             <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase p-5 pb-3" style={{ color: 'var(--vp-text-muted)' }}>
               Top Landing Pages
             </p>
             <table className="w-full">
               <tbody>
-                {data.top_pages.map((p, i) => (
+                {topPages.map((p, i) => (
                   <tr key={i} className="border-t" style={{ borderColor: 'var(--vp-border)' }}>
                     <td className="font-[var(--vp-font-mono)] text-xs px-5 py-2.5 truncate max-w-0" style={{ color: 'var(--vp-text)' }}>{p.landing_url}</td>
                     <td className="font-[var(--vp-font-mono)] text-xs px-5 py-2.5 text-right whitespace-nowrap" style={{ color: 'var(--vp-accent)' }}>{p.clicks} clicks</td>
@@ -460,7 +471,7 @@ export default function Dashboard() {
             <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--vp-text-muted)' }}>
               Recent Referrals
             </p>
-            {data.recent.length > 0 && (
+            {recent.length > 0 && (
               <button
                 onClick={exportCsv}
                 className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-3 py-1.5 border transition-colors"
@@ -470,7 +481,7 @@ export default function Dashboard() {
               </button>
             )}
           </div>
-          {data.recent.length === 0 ? (
+          {recent.length === 0 ? (
             <p className="font-[var(--vp-font-body)] text-xs italic text-center py-10" style={{ color: 'var(--vp-text-muted)' }}>
               No referrals yet — share your link or coupon code to start earning.
             </p>
@@ -488,7 +499,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recent.map((r) => (
+                  {recent.map((r) => (
                     <tr key={r.order_id} className="border-t" style={{ borderColor: 'var(--vp-border)' }}>
                       <td className="font-[var(--vp-font-mono)] text-xs px-5 py-3" style={{ color: 'var(--vp-text)' }}>#{r.order_id}</td>
                       <td className="font-[var(--vp-font-mono)] text-xs px-5 py-3" style={{ color: 'var(--vp-text)' }}>{money(r.order_total)}</td>
