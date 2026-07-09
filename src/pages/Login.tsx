@@ -131,9 +131,16 @@ export default function Login() {
           </form>
 
           <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: 'var(--vp-border)' }}>
-            <p className="font-[var(--vp-font-body)] text-xs text-[var(--vp-text-muted)]">
-              Affiliate accounts are created by our team. Reach out if you'd like to join the program.
+            <p className="font-[var(--vp-font-body)] text-xs text-[var(--vp-text-muted)] mb-2">
+              New to the program?
             </p>
+            <Link
+              to={`/${theme.id}/register`}
+              className="font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase transition-colors"
+              style={{ color: 'var(--vp-accent)' }}
+            >
+              Apply to Become an Affiliate →
+            </Link>
           </div>
         </div>
 

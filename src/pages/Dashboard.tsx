@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getTheme, themeCssVars } from '../themes';
 
 interface Referral {
@@ -8,23 +8,54 @@ interface Referral {
   order_total: string | number;
   commission_amount: string | number;
   status: 'pending' | 'confirmed' | 'paid' | 'cancelled';
+  attribution?: 'link' | 'coupon';
   created_at: string;
+}
+
+interface Payout {
+  id: number;
+  amount: string | number;
+  method: string;
+  destination: string;
+  status: 'requested' | 'paid';
+  requested_at: string;
+  paid_at: string | null;
+}
+
+interface ClickDay {
+  day: string;
+  clicks: number;
+}
+
+interface TopPage {
+  landing_url: string;
+  clicks: number;
 }
 
 interface DashboardData {
   name: string;
   email: string;
   ref_code: string;
+  coupon_code: string;
+  discount_pct: number;
   storefront: string;
   commission_pct: number;
+  payout_method: string;
+  payout_destination: string;
+  payout_methods: Record<string, string>;
+  min_payout: number;
   clicks_total: number;
   clicks_30d: number;
+  clicks_by_day: ClickDay[];
+  top_pages: TopPage[];
   sales_confirmed: number;
   sales_pending: number;
   commission_pending: number;
   commission_confirmed: number;
   commission_paid: number;
+  available_balance: number;
   recent: Referral[];
+  payouts: Payout[];
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -32,10 +63,26 @@ const STATUS_STYLE: Record<string, string> = {
   confirmed: 'bg-green-100 text-green-800',
   paid: 'bg-blue-100 text-blue-800',
   cancelled: 'bg-gray-100 text-gray-600',
+  requested: 'bg-amber-100 text-amber-800',
 };
 
 function money(n: number | string): string {
   return `$${Number(n).toFixed(2)}`;
+}
+
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const csv = rows
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export default function Dashboard() {
@@ -44,15 +91,16 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCoupon, setCopiedCoupon] = useState(false);
+  const [payoutRequesting, setPayoutRequesting] = useState(false);
+  const [payoutMsg, setPayoutMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const load = () => {
     fetch('/api/affiliate-dashboard')
       .then(async (res) => {
         if (res.status === 401) {
-          if (!cancelled) navigate(`/${urlStorefront || ''}/login`.replace('//', '/'));
+          navigate(`/${urlStorefront || ''}/login`.replace('//', '/'));
           return null;
         }
         const json = await res.json();
@@ -60,18 +108,14 @@ export default function Dashboard() {
         return json as DashboardData;
       })
       .then((json) => {
-        if (!cancelled && json) setData(json);
+        if (json) setData(json);
       })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || 'Failed to load dashboard');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch((e) => setError(e.message || 'Failed to load dashboard'))
+      .finally(() => setLoading(false));
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
@@ -90,11 +134,46 @@ export default function Dashboard() {
     if (!refLink) return;
     try {
       await navigator.clipboard.writeText(refLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       /* clipboard permissions denied — silently ignore */
     }
+  };
+
+  const copyCoupon = async () => {
+    if (!data?.coupon_code) return;
+    try {
+      await navigator.clipboard.writeText(data.coupon_code);
+      setCopiedCoupon(true);
+      setTimeout(() => setCopiedCoupon(false), 2000);
+    } catch {
+      /* clipboard permissions denied — silently ignore */
+    }
+  };
+
+  const requestPayout = async () => {
+    setPayoutMsg(null);
+    setPayoutRequesting(true);
+    try {
+      const res = await fetch('/api/affiliate-payout-request', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to request payout.');
+      setPayoutMsg({ text: `Payout of ${money(json.amount)} requested.`, ok: true });
+      load();
+    } catch (e) {
+      setPayoutMsg({ text: e instanceof Error ? e.message : 'Failed to request payout.', ok: false });
+    } finally {
+      setPayoutRequesting(false);
+    }
+  };
+
+  const exportCsv = () => {
+    if (!data) return;
+    downloadCsv(`referrals-${data.ref_code}-${new Date().toISOString().slice(0, 10)}.csv`, [
+      ['Order ID', 'Order Total', 'Commission', 'Status', 'Attribution', 'Date'],
+      ...data.recent.map((r) => [r.order_id, r.order_total, r.commission_amount, r.status, r.attribution || 'link', r.created_at]),
+    ]);
   };
 
   if (loading) {
@@ -119,12 +198,14 @@ export default function Dashboard() {
     { name: 'Paid', value: Number(data.commission_paid) },
   ];
 
+  const canRequestPayout = data.payout_method && data.payout_destination && data.available_balance >= data.min_payout;
+
   return (
     <div className="min-h-screen py-10 bg-[var(--vp-bg)]" style={themeCssVars(theme)}>
       <div className="max-w-6xl mx-auto px-4 md:px-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <div>
             <p className="font-[var(--vp-font-mono)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-1">
               {theme.name} · Affiliate Program
@@ -136,22 +217,38 @@ export default function Dashboard() {
               Commission rate: {data.commission_pct}%
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 border font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase transition-colors"
-            style={{ borderColor: 'var(--vp-border)', color: 'var(--vp-text-muted)', background: 'var(--vp-surface-alt)' }}
-          >
-            Log Out
-          </button>
+          <div className="flex gap-2">
+            <Link
+              to={`/${data.storefront}/materials`}
+              className="px-4 py-2 border font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase transition-colors"
+              style={{ borderColor: 'var(--vp-border)', color: 'var(--vp-text-muted)', background: 'var(--vp-surface-alt)' }}
+            >
+              Materials
+            </Link>
+            <Link
+              to={`/${data.storefront}/account`}
+              className="px-4 py-2 border font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase transition-colors"
+              style={{ borderColor: 'var(--vp-border)', color: 'var(--vp-text-muted)', background: 'var(--vp-surface-alt)' }}
+            >
+              Account
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 border font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase transition-colors"
+              style={{ borderColor: 'var(--vp-border)', color: 'var(--vp-text-muted)', background: 'var(--vp-surface-alt)' }}
+            >
+              Log Out
+            </button>
+          </div>
         </div>
 
-        {/* Referral link */}
-        <div className="mb-8 p-5 border" style={{ borderColor: 'var(--vp-accent)', background: 'var(--vp-surface)' }}>
-          <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-2">
-            Your Referral Link
-          </p>
-          {refLink ? (
-            <>
+        {/* Referral link + coupon */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="p-5 border" style={{ borderColor: 'var(--vp-accent)', background: 'var(--vp-surface)' }}>
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-2">
+              Your Referral Link
+            </p>
+            {refLink ? (
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <code className="flex-1 font-[var(--vp-font-mono)] text-xs md:text-sm text-[var(--vp-text)] border py-2.5 px-3 truncate" style={{ background: 'var(--vp-surface-alt)', borderColor: 'var(--vp-border)' }}>
                   {refLink}
@@ -161,18 +258,47 @@ export default function Dashboard() {
                   className="px-5 py-2.5 font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase border transition-colors whitespace-nowrap"
                   style={{ background: 'var(--vp-accent)', color: 'var(--vp-accent-text)', borderColor: 'var(--vp-accent)' }}
                 >
-                  {copied ? 'Copied!' : 'Copy Link'}
+                  {copiedLink ? 'Copied!' : 'Copy Link'}
                 </button>
               </div>
-              <p className="font-[var(--vp-font-body)] text-[11px] mt-2" style={{ color: 'var(--vp-text-muted)' }}>
-                Referrals are tracked for 30 days after a visitor clicks your link. You earn commission once their order ships and WooCommerce marks it completed.
+            ) : (
+              <p className="font-[var(--vp-font-body)] text-xs" style={{ color: 'var(--vp-text-muted)' }}>
+                Referral code: <code className="font-[var(--vp-font-mono)]">{data.ref_code}</code>
               </p>
-            </>
-          ) : (
-            <p className="font-[var(--vp-font-body)] text-xs" style={{ color: 'var(--vp-text-muted)' }}>
-              Referral code: <code className="font-[var(--vp-font-mono)]">{data.ref_code}</code> — this storefront's live site URL hasn't been configured in the portal yet.
+            )}
+            <p className="font-[var(--vp-font-body)] text-[11px] mt-2" style={{ color: 'var(--vp-text-muted)' }}>
+              Tracked for 30 days after a click. You earn commission once the order ships.
             </p>
-          )}
+          </div>
+
+          <div className="p-5 border" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-2">
+              Your Personal Discount Code
+            </p>
+            {data.coupon_code ? (
+              <>
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <code className="flex-1 font-[var(--vp-font-mono)] text-xs md:text-sm text-[var(--vp-text)] border py-2.5 px-3 truncate" style={{ background: 'var(--vp-surface-alt)', borderColor: 'var(--vp-border)' }}>
+                    {data.coupon_code}
+                  </code>
+                  <button
+                    onClick={copyCoupon}
+                    className="px-5 py-2.5 font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase border transition-colors whitespace-nowrap"
+                    style={{ background: 'var(--vp-accent)', color: 'var(--vp-accent-text)', borderColor: 'var(--vp-accent)' }}
+                  >
+                    {copiedCoupon ? 'Copied!' : 'Copy Code'}
+                  </button>
+                </div>
+                <p className="font-[var(--vp-font-body)] text-[11px] mt-2" style={{ color: 'var(--vp-text-muted)' }}>
+                  Gives shoppers {data.discount_pct}% off — you still earn commission on the discounted total, even without a link click.
+                </p>
+              </>
+            ) : (
+              <p className="font-[var(--vp-font-body)] text-xs" style={{ color: 'var(--vp-text-muted)' }}>
+                Your coupon is being set up.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Stat cards */}
@@ -205,30 +331,148 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Chart */}
+        {/* Payout request */}
         <div className="p-5 border mb-10" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
-          <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase mb-4" style={{ color: 'var(--vp-text-muted)' }}>
-            Commission Breakdown
-          </p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d4c39a55" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => money(v)} />
-              <Bar dataKey="value" fill={theme.colors.accent} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--vp-text-muted)' }}>
+              Withdraw Your Earnings
+            </p>
+            <p className="font-mono text-sm font-bold" style={{ color: 'var(--vp-accent)' }}>
+              {money(data.available_balance)} available
+            </p>
+          </div>
+
+          {!data.payout_method || !data.payout_destination ? (
+            <p className="font-[var(--vp-font-body)] text-sm" style={{ color: 'var(--vp-text-muted)' }}>
+              Add your payout details in{' '}
+              <Link to={`/${data.storefront}/account`} className="underline" style={{ color: 'var(--vp-accent)' }}>
+                Account Settings
+              </Link>{' '}
+              before requesting a withdrawal.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                onClick={requestPayout}
+                disabled={!canRequestPayout || payoutRequesting}
+                className="font-[var(--vp-font-heading)] text-xs tracking-[0.2em] uppercase py-2.5 px-6 border transition-all duration-300 disabled:opacity-50"
+                style={{ background: 'var(--vp-accent)', color: 'var(--vp-accent-text)', borderColor: 'var(--vp-accent)' }}
+              >
+                {payoutRequesting ? 'Requesting…' : 'Request Payout'}
+              </button>
+              <p className="font-[var(--vp-font-body)] text-xs" style={{ color: 'var(--vp-text-muted)' }}>
+                Minimum payout: {money(data.min_payout)} · Sent via {data.payout_methods?.[data.payout_method] || data.payout_method}
+              </p>
+            </div>
+          )}
+
+          {payoutMsg && (
+            <p className={`font-[var(--vp-font-mono)] text-xs mt-3 ${payoutMsg.ok ? 'text-green-700' : 'text-red-800'}`}>
+              {payoutMsg.text}
+            </p>
+          )}
+
+          {data.payouts.length > 0 && (
+            <div className="overflow-x-auto mt-5 pt-4 border-t" style={{ borderColor: 'var(--vp-border)' }}>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left">
+                    <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase pr-4 pb-2" style={{ color: 'var(--vp-text-muted)' }}>Amount</th>
+                    <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase pr-4 pb-2" style={{ color: 'var(--vp-text-muted)' }}>Status</th>
+                    <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase pb-2" style={{ color: 'var(--vp-text-muted)' }}>Requested</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.payouts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="font-[var(--vp-font-mono)] text-xs pr-4 py-1.5" style={{ color: 'var(--vp-text)' }}>{money(p.amount)}</td>
+                      <td className="py-1.5 pr-4">
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 tracking-wider ${STATUS_STYLE[p.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {p.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="font-[var(--vp-font-mono)] text-[11px] py-1.5" style={{ color: 'var(--vp-text-muted)' }}>
+                        {new Date(p.requested_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10">
+          <div className="p-5 border" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase mb-4" style={{ color: 'var(--vp-text-muted)' }}>
+              Commission Breakdown
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#d4c39a55" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => money(v)} />
+                <Bar dataKey="value" fill={theme.colors.accent} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="p-5 border" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase mb-4" style={{ color: 'var(--vp-text-muted)' }}>
+              Clicks — Last 14 Days
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={data.clicks_by_day}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#d4c39a55" />
+                <XAxis dataKey="day" tick={{ fontSize: 9 }} tickFormatter={(d: string) => d.slice(5)} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="clicks" stroke={theme.colors.accent} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top landing pages */}
+        {data.top_pages.length > 0 && (
+          <div className="border mb-10" style={{ borderColor: 'var(--vp-border)' }}>
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase p-5 pb-3" style={{ color: 'var(--vp-text-muted)' }}>
+              Top Landing Pages
+            </p>
+            <table className="w-full">
+              <tbody>
+                {data.top_pages.map((p, i) => (
+                  <tr key={i} className="border-t" style={{ borderColor: 'var(--vp-border)' }}>
+                    <td className="font-[var(--vp-font-mono)] text-xs px-5 py-2.5 truncate max-w-0" style={{ color: 'var(--vp-text)' }}>{p.landing_url}</td>
+                    <td className="font-[var(--vp-font-mono)] text-xs px-5 py-2.5 text-right whitespace-nowrap" style={{ color: 'var(--vp-accent)' }}>{p.clicks} clicks</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Recent referrals */}
         <div className="border" style={{ borderColor: 'var(--vp-border)' }}>
-          <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase p-5 pb-0" style={{ color: 'var(--vp-text-muted)' }}>
-            Recent Referrals
-          </p>
+          <div className="flex items-center justify-between p-5 pb-0">
+            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--vp-text-muted)' }}>
+              Recent Referrals
+            </p>
+            {data.recent.length > 0 && (
+              <button
+                onClick={exportCsv}
+                className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-3 py-1.5 border transition-colors"
+                style={{ borderColor: 'var(--vp-border)', color: 'var(--vp-text-muted)' }}
+              >
+                Export CSV
+              </button>
+            )}
+          </div>
           {data.recent.length === 0 ? (
             <p className="font-[var(--vp-font-body)] text-xs italic text-center py-10" style={{ color: 'var(--vp-text-muted)' }}>
-              No referrals yet — share your link to start earning.
+              No referrals yet — share your link or coupon code to start earning.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -238,6 +482,7 @@ export default function Dashboard() {
                     <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Order</th>
                     <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Order Total</th>
                     <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Your Commission</th>
+                    <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Via</th>
                     <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Status</th>
                     <th className="font-[var(--vp-font-heading)] text-[9px] tracking-[0.15em] uppercase px-5 py-2" style={{ color: 'var(--vp-text-muted)' }}>Date</th>
                   </tr>
@@ -248,6 +493,9 @@ export default function Dashboard() {
                       <td className="font-[var(--vp-font-mono)] text-xs px-5 py-3" style={{ color: 'var(--vp-text)' }}>#{r.order_id}</td>
                       <td className="font-[var(--vp-font-mono)] text-xs px-5 py-3" style={{ color: 'var(--vp-text)' }}>{money(r.order_total)}</td>
                       <td className="font-[var(--vp-font-mono)] text-xs font-bold px-5 py-3" style={{ color: 'var(--vp-accent)' }}>{money(r.commission_amount)}</td>
+                      <td className="font-[var(--vp-font-mono)] text-[11px] px-5 py-3" style={{ color: 'var(--vp-text-muted)' }}>
+                        {r.attribution === 'coupon' ? 'Coupon' : 'Link'}
+                      </td>
                       <td className="px-5 py-3">
                         <span className={`text-[9px] font-mono px-1.5 py-0.5 tracking-wider ${STATUS_STYLE[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {r.status.toUpperCase()}
