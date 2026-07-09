@@ -11,7 +11,10 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const WC_URL = process.env.WC_URL || '';
+// Strip any trailing slash — a WC_URL like "https://db.example.com/" would
+// otherwise produce a double slash before "/wp-json/...", which some WP
+// hosts/proxies mis-route (404/503) instead of just tolerating it.
+const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
 const COOKIE_NAME = 'vp_aff_session';
 
 function readCookie(header: string | undefined, name: string): string | null {
