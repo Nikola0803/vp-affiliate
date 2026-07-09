@@ -15,16 +15,34 @@ export default function Materials() {
   const { storefront: urlStorefront } = useParams();
   const [storefront, setStorefront] = useState<string | undefined>(urlStorefront);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [canSubmit, setCanSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+  const [subType, setSubType] = useState<'text' | 'image' | 'link'>('text');
+  const [subTitle, setSubTitle] = useState('');
+  const [subContent, setSubContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const loadMaterials = (sf: string) => {
+    fetch(`/api/affiliate-materials?storefront=${encodeURIComponent(sf)}`)
+      .then((r) => r.json())
+      .then((json) => setMaterials(json.materials || []))
+      .catch(() => {
+        /* non-fatal — page still usable for submitting */
+      });
+  };
 
   useEffect(() => {
     let cancelled = false;
 
     // Confirm the affiliate is logged in and find their REAL storefront —
     // materials themselves are a public read, but we still gate the page on
-    // auth so it feels like part of the portal, not an open directory.
+    // auth so it feels like part of the portal, not an open directory. This
+    // also tells us whether their storefront accepts affiliate submissions.
     fetch('/api/affiliate-dashboard')
       .then(async (res) => {
         if (res.status === 401) {
@@ -39,10 +57,9 @@ export default function Materials() {
         if (cancelled || !json) return null;
         const sf = json.storefront || urlStorefront;
         setStorefront(sf);
-        return fetch(`/api/affiliate-materials?storefront=${encodeURIComponent(sf)}`).then((r) => r.json());
-      })
-      .then((json) => {
-        if (!cancelled && json) setMaterials(json.materials || []);
+        setCanSubmit(!!json.allow_affiliate_materials);
+        loadMaterials(sf);
+        return null;
       })
       .catch((e) => {
         if (!cancelled) setError(e.message || 'Failed to load materials');
@@ -69,6 +86,33 @@ export default function Materials() {
     }
   };
 
+  const submitMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitMsg(null);
+    if (!subTitle || !subContent) {
+      setSubmitMsg({ text: 'Title and content are required.', ok: false });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/affiliate-materials-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: subType, title: subTitle, content: subContent }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to submit material.');
+      setSubmitMsg({ text: 'Submitted — pending admin review before it appears here.', ok: true });
+      setSubTitle('');
+      setSubContent('');
+      setSubType('text');
+    } catch (e) {
+      setSubmitMsg({ text: e instanceof Error ? e.message : 'Failed to submit material.', ok: false });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f4f1ec]">
@@ -76,6 +120,9 @@ export default function Materials() {
       </div>
     );
   }
+
+  const labelCls = 'font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase text-[var(--vp-text)] block mb-1.5';
+  const inputCls = 'w-full bg-[var(--vp-surface-alt)] border py-2.5 px-3 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors';
 
   return (
     <div className="min-h-screen py-10 bg-[var(--vp-bg)]" style={themeCssVars(theme)}>
@@ -101,6 +148,76 @@ export default function Materials() {
         {error && (
           <div role="alert" className="p-3 border border-red-900/30 bg-red-900/5 mb-6">
             <p className="font-[var(--vp-font-mono)] text-xs text-red-800">{error}</p>
+          </div>
+        )}
+
+        {canSubmit && (
+          <div className="mb-8 p-5 border" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
+            <div className="flex items-center justify-between">
+              <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--vp-text-muted)' }}>
+                Have your own material to share?
+              </p>
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.15em] uppercase px-3 py-1.5 border transition-colors"
+                style={{ borderColor: 'var(--vp-accent)', color: 'var(--vp-accent)' }}
+              >
+                {showForm ? 'Cancel' : 'Submit a Material'}
+              </button>
+            </div>
+
+            {showForm && (
+              <form onSubmit={submitMaterial} className="space-y-4 mt-4 pt-4 border-t" style={{ borderColor: 'var(--vp-border)' }}>
+                <div>
+                  <label className={labelCls}>Title</label>
+                  <input
+                    type="text"
+                    value={subTitle}
+                    onChange={(e) => setSubTitle(e.target.value)}
+                    className={inputCls}
+                    style={{ borderColor: 'var(--vp-border)' }}
+                    placeholder="e.g. Instagram caption idea"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Type</label>
+                  <select
+                    value={subType}
+                    onChange={(e) => setSubType(e.target.value as 'text' | 'image' | 'link')}
+                    className={inputCls}
+                    style={{ borderColor: 'var(--vp-border)' }}
+                  >
+                    <option value="text">Text (e.g. sample caption)</option>
+                    <option value="image">Image URL</option>
+                    <option value="link">Link URL</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Content</label>
+                  <textarea
+                    value={subContent}
+                    onChange={(e) => setSubContent(e.target.value)}
+                    className={inputCls}
+                    style={{ borderColor: 'var(--vp-border)' }}
+                    rows={3}
+                    placeholder={subType === 'text' ? 'Your caption or copy…' : 'https://…'}
+                  />
+                </div>
+                {submitMsg && (
+                  <p className={`font-[var(--vp-font-mono)] text-xs ${submitMsg.ok ? 'text-green-700' : 'text-red-800'}`}>
+                    {submitMsg.text}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="font-[var(--vp-font-heading)] text-xs tracking-[0.2em] uppercase py-2.5 px-6 border transition-all duration-300 disabled:opacity-50"
+                  style={{ background: 'var(--vp-accent)', color: 'var(--vp-accent-text)', borderColor: 'var(--vp-accent)' }}
+                >
+                  {submitting ? 'Submitting…' : 'Submit for Review'}
+                </button>
+              </form>
+            )}
           </div>
         )}
 
