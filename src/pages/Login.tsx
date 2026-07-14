@@ -21,7 +21,7 @@ export default function Login() {
       const res = await fetch('/api/affiliate-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, storefront: theme.id }),
       });
 
       // A 404/HTML response (e.g. the API route isn't running — plain `vite`/

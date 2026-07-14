@@ -1,6 +1,6 @@
 /**
  * POST /api/affiliate-login
- * Body: { email: string, password: string }
+ * Body: { email: string, password: string, storefront: string }
  *
  * Validates affiliate credentials against WordPress (vp-affiliates plugin)
  * and, on success, sets an httpOnly session cookie carrying the bearer
@@ -9,9 +9,14 @@
  *
  * This portal is multi-tenant (one deployment serves every storefront), so
  * unlike each storefront's own copy of this file there's no fixed
- * STOREFRONT env var here — login is by email only (emails are globally
- * unique in wp_vp_affiliates regardless of storefront), and the affiliate's
- * real storefront comes back from /dashboard after login.
+ * STOREFRONT env var here. As of vp-affiliates 1.4.0, an affiliate's email
+ * is only unique PER STOREFRONT (not globally) — the same person can now
+ * be a separate affiliate account on 1, 2, or 3 brands, each with its own
+ * ref code/coupon. That means login has to say which brand it's for; the
+ * `storefront` route param (the login page they're on) is what disambig-
+ * uates which of that email's rows to check. The affiliate's real storefront
+ * still comes back on the response so the dashboard themes correctly even
+ * if they clicked into the wrong brand's login link.
  *
  * Requires the vp-affiliates plugin endpoint POST /vp-affiliates/v1/auth/login.
  */
@@ -32,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, password } = req.body ?? {};
+  const { email, password, storefront } = req.body ?? {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
@@ -48,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
         Authorization: 'Basic ' + Buffer.from(`${WC_USER}:${WC_APP_PASSWORD}`).toString('base64'),
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, storefront: storefront || 'vintage' }),
       signal: AbortSignal.timeout(10_000),
     });
 
