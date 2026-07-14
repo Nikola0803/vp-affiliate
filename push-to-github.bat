@@ -16,10 +16,20 @@ if not exist ".git" (
     git branch -M main
 )
 
+:: Repo moved to its own dedicated name (was Nikola0803/affiliate) so it can
+:: get its own domain instead of sharing naming with anything else.
+if not exist ".git" goto skipremotecheck
+for /f "delims=" %%u in ('git remote get-url origin 2^>nul') do set CURRENT_ORIGIN=%%u
+if "%CURRENT_ORIGIN%"=="https://github.com/Nikola0803/affiliate.git" (
+    echo  Updating remote to the new repo name...
+    git remote set-url origin https://github.com/Nikola0803/vp-affiliate.git
+)
+:skipremotecheck
+
 git remote get-url origin >nul 2>&1
 if errorlevel 1 (
     echo  Adding GitHub remote...
-    git remote add origin https://github.com/Nikola0803/affiliate.git
+    git remote add origin https://github.com/Nikola0803/vp-affiliate.git
 )
 
 :: Stage all current files
@@ -37,7 +47,7 @@ if %errorlevel% == 0 (
 )
 
 :: Push
-echo  Pushing to github.com/Nikola0803/affiliate ...
+echo  Pushing to github.com/Nikola0803/vp-affiliate ...
 echo.
 git push -u origin main
 
