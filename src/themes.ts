@@ -11,9 +11,35 @@
  * then point that storefront's "Affiliate Login" link at
  * `https://<this-portal-domain>/<id>/login`. No other code changes needed —
  * the WP plugin already supports arbitrary storefront tabs.
+ *
+ * As of the "Calibrate Research Network" redesign (2026-07), the portal
+ * presents ONE unified dark/gold visual identity across every storefront —
+ * matching the client-approved mockup — rather than three separately tinted
+ * light themes. Every brand entry below intentionally shares the same
+ * colors/fonts for that reason; per-brand identity now comes through only
+ * via `name` / `siteUrl` (and the ref link / coupon data itself), not paint.
  */
 
 import type { CSSProperties } from 'react';
+
+/** Shared Calibrate Research Network visual identity (see themeCssVars below). */
+const CALIBRATE_FONTS = {
+  heading: '"Avenir Next", "Century Gothic", "Futura", -apple-system, sans-serif',
+  body: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+  mono: '"Consolas", "SFMono-Regular", "Courier New", monospace',
+};
+
+const CALIBRATE_COLORS = {
+  bg: '#0F1319',
+  surface: '#171C24',
+  surfaceAlt: '#1D232C',
+  border: '#262D38',
+  text: '#ECE8DE',
+  textMuted: '#98A0AC',
+  accent: '#D7A84B',
+  accentHover: '#EFC978',
+  accentText: '#1A1305',
+};
 
 export interface StorefrontTheme {
   id: string;
@@ -44,67 +70,28 @@ export const THEMES: Record<string, StorefrontTheme> = {
     id: 'vintage',
     name: 'Vintage Peptides',
     siteUrl: 'https://vintagepeptides.com',
-    fonts: {
-      heading: '"Playfair Display", serif',
-      body: '"Lora", serif',
-      mono: '"Courier Prime", monospace',
-    },
-    colors: {
-      bg: '#F0E6D0',
-      surface: '#FAF6ED',
-      surfaceAlt: '#EDE4CC',
-      border: '#D9C89A',
-      text: '#2B1A0E',
-      textMuted: '#6B4226',
-      accent: '#B8942A',
-      accentHover: '#D4B84A',
-      accentText: '#2B1A0E',
-    },
+    fonts: CALIBRATE_FONTS,
+    colors: CALIBRATE_COLORS,
   },
   msv: {
     id: 'msv',
     name: 'My Secret Vitality',
     siteUrl: 'https://mysecretvitality.com',
-    fonts: {
-      heading: '"Cormorant Garamond", serif',
-      body: '"Montserrat", sans-serif',
-      mono: '"Courier Prime", monospace',
-    },
-    colors: {
-      bg: '#EDE9E1',
-      surface: '#F6F3ED',
-      surfaceAlt: '#E4DFD4',
-      border: '#D6CFC0',
-      text: '#2E2E24',
-      textMuted: '#5B5A4B',
-      accent: '#BE8A3E',
-      accentHover: '#D6A25A',
-      accentText: '#2E2E24',
-    },
+    fonts: CALIBRATE_FONTS,
+    colors: CALIBRATE_COLORS,
   },
   liberty: {
     id: 'liberty',
     name: 'Liberty Peptides',
     // Not live yet — update once the storefront has a real domain.
     siteUrl: '',
-    fonts: {
-      heading: '"Playfair Display", serif',
-      body: '"Montserrat", sans-serif',
-      mono: '"Courier Prime", monospace',
-    },
-    colors: {
-      bg: '#E8ECEE',
-      surface: '#F5F7F8',
-      surfaceAlt: '#DCE2E5',
-      border: '#C7D0D4',
-      text: '#1E2A30',
-      textMuted: '#51636C',
-      accent: '#2F5D6B',
-      accentHover: '#3D7B8C',
-      accentText: '#F5F7F8',
-    },
+    fonts: CALIBRATE_FONTS,
+    colors: CALIBRATE_COLORS,
   },
 };
+
+/** Network-level brand — shown in the shared nav/footer instead of any one storefront's name. */
+export const NETWORK_NAME = 'Calibrate Research Network';
 
 export const DEFAULT_THEME_ID = 'vintage';
 

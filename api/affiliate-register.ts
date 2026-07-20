@@ -7,13 +7,18 @@
  * Pending Approval). No cookie is set here — registration doesn't log you
  * in, it just queues the request.
  *
+ * NOTE: no WC_USER/WC_APP_PASSWORD Basic Auth here — this is a public,
+ * unauthenticated WP route (`permission_callback` => `__return_true`). A bad
+ * app-password env var would otherwise make WordPress 401 every request
+ * before it even reaches the plugin, which shows up client-side as a
+ * generic "registration failed" for every signup. See affiliate-login.ts
+ * for the full explanation.
+ *
  * Requires the vp-affiliates plugin endpoint POST /vp-affiliates/v1/register.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
-const WC_USER = process.env.WC_USER || '';
-const WC_APP_PASSWORD = process.env.WC_APP_PASSWORD || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -31,10 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Basic ' + Buffer.from(`${WC_USER}:${WC_APP_PASSWORD}`).toString('base64'),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, storefront }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -42,6 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await r.json().catch(() => ({}));
 
     if (!r.ok) {
+      if (!data.error) {
+        console.error('[affiliate-register] unexpected upstream error', r.status, data);
+      }
       return res.status(r.status).json({ error: data.error || 'Registration failed.' });
     }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { getTheme, themeCssVars } from '../themes';
+import { getTheme, themeCssVars, THEMES } from '../themes';
 
 interface Referral {
   order_id: number;
@@ -215,18 +215,31 @@ export default function Dashboard() {
     <div className="min-h-screen py-10 bg-[var(--vp-bg)]" style={themeCssVars(theme)}>
       <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
-          <div>
-            <p className="font-[var(--vp-font-mono)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-1">
-              {theme.name} · Affiliate Program
-            </p>
-            <h1 className="font-[var(--vp-font-heading)] text-2xl tracking-[0.1em] uppercase text-[var(--vp-text)]">
-              Welcome, {data.name}
-            </h1>
-            <p className="font-[var(--vp-font-body)] text-xs text-[var(--vp-text-muted)] mt-1">
-              Commission rate: {data.commission_pct}%
-            </p>
+        {/* Portal nav */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b" style={{ borderColor: 'var(--vp-border)' }}>
+          <div className="flex items-center gap-3.5">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center font-[var(--vp-font-heading)] font-bold text-lg shrink-0"
+              style={{ background: 'linear-gradient(135deg, var(--vp-accent), #4FB8A6)', color: 'var(--vp-accent-text)' }}
+            >
+              {data.name?.trim()?.[0]?.toUpperCase() || '?'}
+            </div>
+            <div>
+              <p className="font-[var(--vp-font-mono)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-0.5">
+                {theme.name} · Affiliate Program
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-[var(--vp-font-heading)] text-xl tracking-[0.03em] text-[var(--vp-text)]">
+                  {data.name}
+                </h1>
+                <span
+                  className="font-[var(--vp-font-mono)] text-[9px] uppercase tracking-[0.08em] px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(111,190,134,0.14)', color: '#6FBE86' }}
+                >
+                  Active · {data.commission_pct}% commission
+                </span>
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
             <Link
@@ -464,6 +477,43 @@ export default function Dashboard() {
             </table>
           </div>
         )}
+
+        {/* Brand access — the real set of houses in the network and whether
+            each one is actually live yet (siteUrl is only set once a
+            storefront has a real domain — see themes.ts). No fake "locked
+            until you hit a tier" gating here, just what's actually live. */}
+        <div className="border mb-10" style={{ borderColor: 'var(--vp-border)' }}>
+          <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase p-5 pb-3" style={{ color: 'var(--vp-text-muted)' }}>
+            Brand Access — Every House in the Network
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 border-t" style={{ borderColor: 'var(--vp-border)' }}>
+            {Object.values(THEMES).map((t, i) => {
+              const isLive = !!t.siteUrl;
+              return (
+                <div
+                  key={t.id}
+                  className={`p-5 flex items-center justify-between gap-3 ${i % 2 === 0 ? 'sm:border-r' : ''} border-t sm:border-t-0`}
+                  style={{ borderColor: 'var(--vp-border)' }}
+                >
+                  <div>
+                    <p className="font-[var(--vp-font-body)] text-sm" style={{ color: 'var(--vp-text)' }}>{t.name}</p>
+                    <p className="font-[var(--vp-font-body)] text-xs mt-0.5" style={{ color: 'var(--vp-text-muted)' }}>
+                      {isLive ? 'Talking points, captions, brand sheet' : 'Unlocks once this storefront goes live'}
+                    </p>
+                  </div>
+                  <span
+                    className="font-[var(--vp-font-mono)] text-[9px] uppercase tracking-[0.08em] px-2.5 py-1 rounded-full whitespace-nowrap"
+                    style={isLive
+                      ? { background: 'rgba(111,190,134,0.14)', color: '#6FBE86' }
+                      : { background: 'var(--vp-surface-alt)', color: 'var(--vp-text-muted)' }}
+                  >
+                    {isLive ? 'Ready' : 'Coming soon'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Recent referrals */}
         <div className="border" style={{ borderColor: 'var(--vp-border)' }}>

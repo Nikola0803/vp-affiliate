@@ -18,6 +18,18 @@
  * still comes back on the response so the dashboard themes correctly even
  * if they clicked into the wrong brand's login link.
  *
+ * NOTE: no WC_USER/WC_APP_PASSWORD Basic Auth here on purpose. This route's
+ * WordPress permission_callback is `__return_true` (it's a public endpoint —
+ * the affiliate's own email+password IS the auth). Sending a WP application
+ * password Basic Auth header anyway is actively dangerous here: if that
+ * app password is ever wrong/revoked/rotated, WordPress's core "Application
+ * Passwords" feature rejects the ENTIRE request with a generic 401 before
+ * our route even runs — which looks *exactly* like "wrong email/password"
+ * from the affiliate's side, even though their credentials were fine. That
+ * was silently breaking login for everyone. Only routes that actually need
+ * an authenticated WP admin (e.g. the payouts/affiliates admin endpoints)
+ * should send this header.
+ *
  * Requires the vp-affiliates plugin endpoint POST /vp-affiliates/v1/auth/login.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -26,8 +38,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // otherwise produce a double slash before "/wp-json/...", which some WP
 // hosts/proxies mis-route (404/503) instead of just tolerating it.
 const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
-const WC_USER = process.env.WC_USER || '';
-const WC_APP_PASSWORD = process.env.WC_APP_PASSWORD || '';
 
 const COOKIE_NAME = 'vp_aff_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days, matches token lifetime
@@ -49,10 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Basic ' + Buffer.from(`${WC_USER}:${WC_APP_PASSWORD}`).toString('base64'),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, storefront: storefront || 'vintage' }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -60,6 +67,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await r.json().catch(() => ({}));
 
     if (!r.ok) {
+      // data.error is our plugin's own error shape. If it's missing, this
+      // wasn't our route rejecting bad credentials — it's WordPress itself
+      // (or a proxy in front of it) rejecting the request. Log the real
+      // status/body so it shows up in Vercel logs instead of vanishing
+      // behind a misleading "invalid email or password" for every affiliate.
+      if (!data.error) {
+        console.error('[affiliate-login] unexpected upstream error', r.status, data);
+      }
       return res.status(r.status).json({ error: data.error || 'Invalid email or password.' });
     }
 

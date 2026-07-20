@@ -10,13 +10,14 @@
  * (which has no fixed notion of "the" portal domain — one shared backend
  * serves every storefront/preview deployment) can build a working reset link.
  *
+ * NOTE: no WC_USER/WC_APP_PASSWORD Basic Auth — public unauthenticated WP
+ * route (`permission_callback` => `__return_true`). See affiliate-login.ts.
+ *
  * Requires the vp-affiliates plugin endpoint POST /vp-affiliates/v1/auth/forgot-password.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
-const WC_USER = process.env.WC_USER || '';
-const WC_APP_PASSWORD = process.env.WC_APP_PASSWORD || '';
 
 const GENERIC_MESSAGE = "If an affiliate account exists for that email, we've sent a password reset link.";
 
@@ -40,10 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/auth/forgot-password`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Basic ' + Buffer.from(`${WC_USER}:${WC_APP_PASSWORD}`).toString('base64'),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, storefront: storefront || 'vintage', reset_url_base: resetUrlBase }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -51,7 +49,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Even if the upstream call itself fails, don't leak that to the client —
     // still say "check your email" so we don't reveal account existence or
     // expose backend connectivity issues to a public, unauthenticated form.
-    await r.json().catch(() => ({}));
+    // (Do log a non-ok upstream response server-side so a real outage is
+    // still visible in Vercel logs, even though the user never sees it.)
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error('[affiliate-forgot-password] upstream error', r.status, data);
+    }
     return res.status(200).json({ success: true, message: GENERIC_MESSAGE });
   } catch (e) {
     console.error('[affiliate-forgot-password]', e);

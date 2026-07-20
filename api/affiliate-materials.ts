@@ -6,13 +6,16 @@
  * links to it from inside the dashboard so affiliates browse materials for
  * their own storefront.
  *
+ * NOTE: no WC_USER/WC_APP_PASSWORD Basic Auth — the GET side of this WP
+ * route is public (`permission_callback` => `__return_true`). See
+ * affiliate-login.ts for why sending a (possibly stale) app password here
+ * anyway is actively harmful rather than just redundant.
+ *
  * Requires the vp-affiliates plugin endpoint GET /vp-affiliates/v1/materials.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
-const WC_USER = process.env.WC_USER || '';
-const WC_APP_PASSWORD = process.env.WC_APP_PASSWORD || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -29,9 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (storefront) url.searchParams.set('storefront', storefront);
 
     const r = await fetch(url.toString(), {
-      headers: {
-        Authorization: 'Basic ' + Buffer.from(`${WC_USER}:${WC_APP_PASSWORD}`).toString('base64'),
-      },
       signal: AbortSignal.timeout(10_000),
     });
 
