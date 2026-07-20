@@ -478,27 +478,26 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Brand access — the real set of houses in the network and whether
-            each one is actually live yet (siteUrl is only set once a
+        {/* Brand access — the real set of houses in the network, each one
+            linking straight to its live site (siteUrl is only set once a
             storefront has a real domain — see themes.ts). No fake "locked
             until you hit a tier" gating here, just what's actually live. */}
         <div className="border mb-10" style={{ borderColor: 'var(--vp-border)' }}>
           <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase p-5 pb-3" style={{ color: 'var(--vp-text-muted)' }}>
-            Brand Access — Every House in the Network
+            Our Network — Visit the Other Houses
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 border-t" style={{ borderColor: 'var(--vp-border)' }}>
             {Object.values(THEMES).map((t, i) => {
               const isLive = !!t.siteUrl;
-              return (
+              const row = (
                 <div
-                  key={t.id}
-                  className={`p-5 flex items-center justify-between gap-3 ${i % 2 === 0 ? 'sm:border-r' : ''} border-t sm:border-t-0`}
+                  className={`p-5 flex items-center justify-between gap-3 ${i % 2 === 0 ? 'sm:border-r' : ''} border-t sm:border-t-0 ${isLive ? 'transition-colors hover:bg-[var(--vp-surface-alt)]' : ''}`}
                   style={{ borderColor: 'var(--vp-border)' }}
                 >
                   <div>
                     <p className="font-[var(--vp-font-body)] text-sm" style={{ color: 'var(--vp-text)' }}>{t.name}</p>
                     <p className="font-[var(--vp-font-body)] text-xs mt-0.5" style={{ color: 'var(--vp-text-muted)' }}>
-                      {isLive ? 'Talking points, captions, brand sheet' : 'Unlocks once this storefront goes live'}
+                      {isLive ? t.siteUrl.replace(/^https?:\/\//, '') : 'Launching soon'}
                     </p>
                   </div>
                   <span
@@ -507,9 +506,14 @@ export default function Dashboard() {
                       ? { background: 'rgba(111,190,134,0.14)', color: '#6FBE86' }
                       : { background: 'var(--vp-surface-alt)', color: 'var(--vp-text-muted)' }}
                   >
-                    {isLive ? 'Ready' : 'Coming soon'}
+                    {isLive ? 'Visit site →' : 'Coming soon'}
                   </span>
                 </div>
+              );
+              return isLive ? (
+                <a key={t.id} href={t.siteUrl} target="_blank" rel="noreferrer">{row}</a>
+              ) : (
+                <div key={t.id}>{row}</div>
               );
             })}
           </div>
