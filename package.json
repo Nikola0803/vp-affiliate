@@ -1,7 +1,7 @@
 {
   "name": "vp-affiliate-portal",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Shared affiliate login/dashboard portal for every VP storefront (Vintage Peptides, My Secret Vitality, Liberty Peptides). One codebase, themed per storefront, talking to the same shared vp-affiliates WordPress plugin each storefront's own site already uses for click-tracking.",
   "scripts": {
