@@ -1,5 +1,8 @@
 /**
- * POST /api/affiliate-register
+ * POST /api/affiliate-signup
+ * (renamed from /api/affiliate-register — same reason as
+ * affiliate-authenticate.ts: a fresh function path to sidestep Vercel-side
+ * staleness that was stuck on the old one.)
  * Body: { name: string, email: string, password: string, storefront: string }
  *
  * Public self-signup proxy. New accounts land as 'pending' in WordPress and

@@ -18,7 +18,7 @@ export default function Login() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/affiliate-login', {
+      const res = await fetch('/api/affiliate-authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, storefront: theme.id }),
@@ -32,7 +32,7 @@ export default function Login() {
       if (!contentType.includes('application/json')) {
         setError(
           res.status === 404
-            ? "Can't reach /api/affiliate-login (404). If you're running `npm run dev`, that only serves the frontend — use `vercel dev` or a real Vercel deployment so the API functions run."
+            ? "Can't reach /api/affiliate-authenticate (404). If you're running `npm run dev`, that only serves the frontend — use `vercel dev` or a real Vercel deployment so the API functions run."
             : `Unexpected response from the server (HTTP ${res.status}).`
         );
         return;

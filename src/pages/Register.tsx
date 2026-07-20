@@ -29,7 +29,7 @@ export default function Register() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/affiliate-register', {
+      const res = await fetch('/api/affiliate-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, storefront: theme.id }),
@@ -39,7 +39,7 @@ export default function Register() {
       if (!contentType.includes('application/json')) {
         setError(
           res.status === 404
-            ? "Can't reach /api/affiliate-register (404). If you're running `npm run dev`, that only serves the frontend — use `vercel dev` or a real Vercel deployment so the API functions run."
+            ? "Can't reach /api/affiliate-signup (404). If you're running `npm run dev`, that only serves the frontend — use `vercel dev` or a real Vercel deployment so the API functions run."
             : `Unexpected response from the server (HTTP ${res.status}).`
         );
         return;

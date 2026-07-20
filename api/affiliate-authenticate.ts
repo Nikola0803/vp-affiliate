@@ -1,5 +1,9 @@
 /**
- * POST /api/affiliate-login
+ * POST /api/affiliate-authenticate
+ * (renamed from /api/affiliate-login — that path kept serving stale
+ * behavior after a fix was deployed, while brand-new function paths in the
+ * same deployment updated fine. Giving this a fresh path sidesteps whatever
+ * Vercel-side staleness was stuck on the old one.)
  * Body: { email: string, password: string, storefront: string }
  *
  * Validates affiliate credentials against WordPress (vp-affiliates plugin)
