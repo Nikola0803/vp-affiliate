@@ -14,7 +14,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Strip any trailing slash — a WC_URL like "https://db.example.com/" would
 // otherwise produce a double slash before "/wp-json/...", which some WP
 // hosts/proxies mis-route (404/503) instead of just tolerating it.
-const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
+// Force https and strip trailing slashes. ROOT CAUSE 2026-07-20: the
+// WC_URL env var was set to http:// — and plain-HTTP db.vintagepeptides.com
+// serves a STALE WordPress with an old vp-affiliates plugin missing the
+// /auth/login and /register routes (rest_no_route 404), while https serves
+// the real, current site. Every "login/signup 404" traced back to this.
+// Forcing https here makes the scheme mistake impossible to repeat.
+const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '').replace(/^http:\/\//i, 'https://');
 const COOKIE_NAME = 'vp_aff_session';
 
 function readCookie(header: string | undefined, name: string): string | null {

@@ -17,7 +17,13 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
+// Force https and strip trailing slashes. ROOT CAUSE 2026-07-20: the
+// WC_URL env var was set to http:// — and plain-HTTP db.vintagepeptides.com
+// serves a STALE WordPress with an old vp-affiliates plugin missing the
+// /auth/login and /register routes (rest_no_route 404), while https serves
+// the real, current site. Every "login/signup 404" traced back to this.
+// Forcing https here makes the scheme mistake impossible to repeat.
+const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '').replace(/^http:\/\//i, 'https://');
 
 const GENERIC_MESSAGE = "If an affiliate account exists for that email, we've sent a password reset link.";
 
