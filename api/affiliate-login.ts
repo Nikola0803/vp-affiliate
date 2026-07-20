@@ -42,7 +42,15 @@ const WC_URL = (process.env.WC_URL || '').replace(/\/+$/, '');
 const COOKIE_NAME = 'vp_aff_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days, matches token lifetime
 
+const BUILD_MARKER = 'secret-field-fix-2026-07-20-2200';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Diagnostic-only branch: lets a plain GET confirm which build of THIS
+  // exact file is actually running, without needing a POST test. Safe to
+  // remove once deployment staleness is fully ruled out.
+  if (req.method === 'GET' && req.query._diag === '1') {
+    return res.status(200).json({ build: BUILD_MARKER, file: 'affiliate-login.ts' });
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
