@@ -96,9 +96,18 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase text-[var(--vp-text)] block mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase text-[var(--vp-text)]">
+                  Password
+                </label>
+                <Link
+                  to={`/${theme.id}/forgot-password`}
+                  className="font-[var(--vp-font-mono)] text-[10px] tracking-widest uppercase transition-colors"
+                  style={{ color: 'var(--vp-text-muted)' }}
+                >
+                  Forgot?
+                </Link>
+              </div>
               <input
                 type="password"
                 required
