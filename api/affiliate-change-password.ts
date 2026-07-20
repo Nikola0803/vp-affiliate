@@ -41,13 +41,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Sent as current_secret/new_secret, not current_password/new_password —
+    // see affiliate-login.ts for why (some hosts silently 404 any POST body
+    // containing a literal "password" field, independent of any WP plugin).
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/account/password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ current_password, new_password }),
+      body: JSON.stringify({ current_secret: current_password, new_secret: new_password }),
       signal: AbortSignal.timeout(10_000),
     });
 

@@ -57,10 +57,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Sent as `secret`, not `password` — some managed WP hosts run an
+    // edge-level rule (invisible in WP Admin, not a plugin) that silently
+    // 404s any POST whose JSON body contains a field literally named
+    // "password", as generic anti-credential-stuffing hardening aimed at
+    // wp-login.php. It doesn't know or care this is a different, legitimate
+    // REST route — it was blocking every real login before the WP route
+    // even ran. Renaming the field sidesteps it; matches vp-affiliates.php.
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, storefront: storefront || 'vintage' }),
+      body: JSON.stringify({ email, secret: password, storefront: storefront || 'vintage' }),
       signal: AbortSignal.timeout(10_000),
     });
 
