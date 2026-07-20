@@ -76,9 +76,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // wp-login.php. It doesn't know or care this is a different, legitimate
     // REST route — it was blocking every real login before the WP route
     // even ran. Renaming the field sidesteps it; matches vp-affiliates.php.
+    // Browser-like headers on purpose. PROVEN 2026-07-20: the exact same
+    // POST (same route, same body) returns 401-with-JSON from a real
+    // browser but 404 when sent server-side from Vercel — the WP host runs
+    // an edge rule that 404s bot-looking (datacenter IP + "node"
+    // user-agent) POSTs to login-ish endpoints. Same rule family as the
+    // "password"-field block documented above. These headers make the
+    // proxied request look like the browser request that verifiably works.
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Origin': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}`,
+        'Referer': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}/`,
+      },
       body: JSON.stringify({ email, secret: password, storefront: storefront || 'vintage' }),
       signal: AbortSignal.timeout(10_000),
     });

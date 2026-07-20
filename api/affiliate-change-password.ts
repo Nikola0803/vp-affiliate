@@ -49,6 +49,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        // Browser-like headers — same reason as affiliate-authenticate.ts:
+        // the WP host's edge rule 404s bot-looking server-to-server POSTs
+        // to auth-ish endpoints ("password" is literally in this path).
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Origin': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}`,
+        'Referer': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}/`,
       },
       body: JSON.stringify({ current_secret: current_password, new_secret: new_password }),
       signal: AbortSignal.timeout(10_000),

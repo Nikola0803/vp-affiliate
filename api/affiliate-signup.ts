@@ -40,9 +40,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Sent as `secret`, not `password` — see affiliate-login.ts for why
     // (some hosts silently 404 any POST body containing a literal
     // "password" field, independent of any WP plugin).
+    // Browser-like headers — same reason as affiliate-authenticate.ts: the
+    // WP host's edge rule 404s bot-looking server-to-server POSTs to
+    // auth-ish endpoints (proven via side-by-side browser vs Vercel test).
     const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Origin': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}`,
+        'Referer': `https://${req.headers.host || 'affiliate.vintagepeptides.com'}/`,
+      },
       body: JSON.stringify({ name, email, secret: password, storefront }),
       signal: AbortSignal.timeout(10_000),
     });
