@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTheme, themeCssVars } from '../themes';
 
+// Basic but real email-shape check — catches the "typo'd/missing @ or TLD"
+// class of bad email that HTML5's native type="email" validation doesn't
+// reliably surface to the user in every browser/autofill path.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// At least 8 characters, with at least one letter and one number — a floor,
+// not a full strength meter, but better than length-only.
+const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+
 export default function Register() {
   const { storefront } = useParams();
   const theme = getTheme(storefront);
@@ -13,13 +21,19 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (!EMAIL_RE.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!PASSWORD_RE.test(password)) {
+      setError('Password must be at least 8 characters and include at least one letter and one number.');
       return;
     }
     if (password !== confirm) {
@@ -117,6 +131,13 @@ export default function Register() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => {
+                    if (email && !EMAIL_RE.test(email.trim())) {
+                      setError('Please enter a valid email address.');
+                    } else if (error === 'Please enter a valid email address.') {
+                      setError('');
+                    }
+                  }}
                   className="w-full bg-[var(--vp-surface-alt)] border py-2.5 px-3 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors"
                   style={{ borderColor: 'var(--vp-border)' }}
                   placeholder="you@example.com"
@@ -126,29 +147,54 @@ export default function Register() {
                 <label className="font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase text-[var(--vp-text)] block mb-1.5">
                   Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[var(--vp-surface-alt)] border py-2.5 px-3 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors"
-                  style={{ borderColor: 'var(--vp-border)' }}
-                  placeholder="min. 8 characters"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-[var(--vp-surface-alt)] border py-2.5 pl-3 pr-14 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors"
+                    style={{ borderColor: 'var(--vp-border)' }}
+                    placeholder="min. 8 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-0 top-0 h-full px-3 flex items-center justify-center font-[var(--vp-font-mono)] text-[10px] tracking-wider uppercase transition-colors"
+                    style={{ color: 'var(--vp-text-muted)' }}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <p className="font-[var(--vp-font-body)] text-[11px] mt-1" style={{ color: 'var(--vp-text-muted)' }}>
+                  At least 8 characters, including one letter and one number.
+                </p>
               </div>
               <div>
                 <label className="font-[var(--vp-font-heading)] text-[11px] tracking-[0.15em] uppercase text-[var(--vp-text)] block mb-1.5">
                   Confirm Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full bg-[var(--vp-surface-alt)] border py-2.5 px-3 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors"
-                  style={{ borderColor: 'var(--vp-border)' }}
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    required
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    className="w-full bg-[var(--vp-surface-alt)] border py-2.5 pl-3 pr-14 font-[var(--vp-font-body)] text-sm text-[var(--vp-text)] focus:outline-none transition-colors"
+                    style={{ borderColor: 'var(--vp-border)' }}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                    className="absolute right-0 top-0 h-full px-3 flex items-center justify-center font-[var(--vp-font-mono)] text-[10px] tracking-wider uppercase transition-colors"
+                    style={{ color: 'var(--vp-text-muted)' }}
+                  >
+                    {showConfirm ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               {error && (
