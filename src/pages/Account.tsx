@@ -4,6 +4,8 @@ import { getTheme, themeCssVars } from '../themes';
 
 interface DashboardLite {
   storefront: string;
+  ref_code: string;
+  coupon_code: string;
   payout_method: string;
   payout_destination: string;
   payout_methods: Record<string, string>;
@@ -19,6 +21,10 @@ export default function Account() {
   const [payoutDestination, setPayoutDestination] = useState('');
   const [payoutSaving, setPayoutSaving] = useState(false);
   const [payoutMsg, setPayoutMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const [couponCode, setCouponCode] = useState('');
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponMsg, setCouponMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -43,6 +49,7 @@ export default function Account() {
           setData(json);
           setPayoutMethod(json.payout_method || '');
           setPayoutDestination(json.payout_destination || '');
+          setCouponCode(json.coupon_code || json.ref_code || '');
         }
       })
       .finally(() => {
@@ -77,6 +84,32 @@ export default function Account() {
       setPayoutMsg({ text: e instanceof Error ? e.message : 'Failed to save payout info.', ok: false });
     } finally {
       setPayoutSaving(false);
+    }
+  };
+
+  const saveCouponCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponMsg(null);
+    const code = couponCode.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,20}$/.test(code)) {
+      setCouponMsg({ text: 'Code must be 3–20 letters/numbers only, no spaces or symbols.', ok: false });
+      return;
+    }
+    setCouponSaving(true);
+    try {
+      const res = await fetch('/api/affiliate-coupon-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update your code.');
+      setCouponCode(json.coupon_code || code);
+      setCouponMsg({ text: 'Your referral link and coupon code are now updated.', ok: true });
+    } catch (e) {
+      setCouponMsg({ text: e instanceof Error ? e.message : 'Failed to update your code.', ok: false });
+    } finally {
+      setCouponSaving(false);
     }
   };
 
@@ -142,6 +175,43 @@ export default function Account() {
           >
             ← Dashboard
           </Link>
+        </div>
+
+        {/* Referral / coupon code */}
+        <div className="p-6 border mb-8" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
+          <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase mb-4" style={{ color: 'var(--vp-text-muted)' }}>
+            Your Referral / Coupon Code
+          </p>
+          <form onSubmit={saveCouponCode} className="space-y-4">
+            <div>
+              <label className={labelCls}>Code</label>
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className={inputCls}
+                style={{ borderColor: 'var(--vp-border)' }}
+                placeholder="e.g. YOURNAME15"
+                maxLength={20}
+              />
+              <p className="font-[var(--vp-font-mono)] text-[10px] text-[var(--vp-text-muted)] mt-1.5">
+                Used both for your referral link (?ref=) and as a real checkout coupon. You can change this anytime, but changing it means links/codes you've already shared under the old one stop working.
+              </p>
+            </div>
+            {couponMsg && (
+              <p className={`font-[var(--vp-font-mono)] text-xs ${couponMsg.ok ? 'text-green-700' : 'text-red-800'}`}>
+                {couponMsg.text}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={couponSaving}
+              className="font-[var(--vp-font-heading)] text-xs tracking-[0.2em] uppercase py-2.5 px-6 border transition-all duration-300 disabled:opacity-50"
+              style={{ background: 'var(--vp-accent)', color: 'var(--vp-accent-text)', borderColor: 'var(--vp-accent)' }}
+            >
+              {couponSaving ? 'Saving…' : 'Save Code'}
+            </button>
+          </form>
         </div>
 
         {/* Payout info */}

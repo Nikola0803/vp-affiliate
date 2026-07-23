@@ -296,9 +296,14 @@ export default function Dashboard() {
           </div>
 
           <div className="p-5 border" style={{ borderColor: 'var(--vp-border)', background: 'var(--vp-surface)' }}>
-            <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)] mb-2">
-              Your Personal Discount Code
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-[var(--vp-font-heading)] text-[10px] tracking-[0.2em] uppercase text-[var(--vp-text-muted)]">
+                Your Personal Discount Code
+              </p>
+              <Link to={`/${data.storefront}/account`} className="font-[var(--vp-font-mono)] text-[10px] underline whitespace-nowrap" style={{ color: 'var(--vp-accent)' }}>
+                Change code
+              </Link>
+            </div>
             {data.coupon_code ? (
               <>
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
