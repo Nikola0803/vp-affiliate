@@ -102,7 +102,7 @@ const DEFAULTS: PortalContent = {
     ],
   },
   footer: {
-    left: 'Calibrate Research Network — an independent network for RUO research partners',
+    left: 'Vintage Vitality Group — an independent network for RUO research partners',
     right: 'Program terms subject to attorney review before partners sign',
   },
 };
@@ -174,7 +174,7 @@ export default function Home() {
         <nav className="site-nav">
           <div className="band-inner">
             <span className="brand-mark">
-              CALIBRATE<span className="sub">RESEARCH NETWORK</span>
+              VINTAGE VITALITY<span className="sub">GROUP</span>
             </span>
             <div className="links">
               <button onClick={() => scrollToId('why')}>Program</button>

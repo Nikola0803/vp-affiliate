@@ -12,7 +12,7 @@
  * `https://<this-portal-domain>/<id>/login`. No other code changes needed —
  * the WP plugin already supports arbitrary storefront tabs.
  *
- * As of the "Calibrate Research Network" redesign (2026-07), the portal
+ * As of the "Vintage Vitality Group" redesign (2026-07), the portal
  * presents ONE unified dark/gold visual identity across every storefront —
  * matching the client-approved mockup — rather than three separately tinted
  * light themes. Every brand entry below intentionally shares the same
@@ -22,14 +22,14 @@
 
 import type { CSSProperties } from 'react';
 
-/** Shared Calibrate Research Network visual identity (see themeCssVars below). */
-const CALIBRATE_FONTS = {
+/** Shared Vintage Vitality Group visual identity (see themeCssVars below). */
+const VVG_FONTS = {
   heading: '"Avenir Next", "Century Gothic", "Futura", -apple-system, sans-serif',
   body: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
   mono: '"Consolas", "SFMono-Regular", "Courier New", monospace',
 };
 
-const CALIBRATE_COLORS = {
+const VVG_COLORS = {
   bg: '#0F1319',
   surface: '#171C24',
   surfaceAlt: '#1D232C',
@@ -70,28 +70,28 @@ export const THEMES: Record<string, StorefrontTheme> = {
     id: 'vintage',
     name: 'Vintage Peptides',
     siteUrl: 'https://vintagepeptides.com',
-    fonts: CALIBRATE_FONTS,
-    colors: CALIBRATE_COLORS,
+    fonts: VVG_FONTS,
+    colors: VVG_COLORS,
   },
   msv: {
     id: 'msv',
     name: 'My Secret Vitality',
     siteUrl: 'https://mysecretvitality.com',
-    fonts: CALIBRATE_FONTS,
-    colors: CALIBRATE_COLORS,
+    fonts: VVG_FONTS,
+    colors: VVG_COLORS,
   },
   liberty: {
     id: 'liberty',
     name: 'Liberty Peptides',
     // Not live yet — update once the storefront has a real domain.
     siteUrl: '',
-    fonts: CALIBRATE_FONTS,
-    colors: CALIBRATE_COLORS,
+    fonts: VVG_FONTS,
+    colors: VVG_COLORS,
   },
 };
 
 /** Network-level brand — shown in the shared nav/footer instead of any one storefront's name. */
-export const NETWORK_NAME = 'Calibrate Research Network';
+export const NETWORK_NAME = 'Vintage Vitality Group';
 
 export const DEFAULT_THEME_ID = 'vintage';
 

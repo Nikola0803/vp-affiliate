@@ -11,7 +11,7 @@ body {
   color: var(--vp-text, #ECE8DE);
 }
 
-/* ── Calibrate Research Network look ──────────────────────────────────────
+/* ── Vintage Vitality Group look ───────────────────────────────────────────
  * The portal's per-page markup styles every card/input/button via Tailwind's
  * generic `.border` utility + inline CSS custom properties (see themes.ts),
  * not bespoke component classes. Rather than touch every className in every
@@ -48,7 +48,7 @@ button[class*="tracking-[0.15em] uppercase"] {
   border-radius: 9999px;
 }
 
-/* ── Calibrate landing page (Home.tsx) ────────────────────────────────────
+/* ── Vintage Vitality Group landing page (Home.tsx) ───────────────────────
  * BUG FIX 2026-07-25: this used to be a minimal "choose your house" gate —
  * a prior session had cut the full recruiting microsite (hero, stats,
  * why-partners, how-it-works, terms, compliance) down to just this picker,
