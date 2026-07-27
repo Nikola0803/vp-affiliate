@@ -1,12 +1,23 @@
 /**
  * POST /api/affiliate-payout-info
- * Body: { payout_method: string, payout_destination: string }
+ *   Body: { payout_method: string, payout_destination: string }
+ *   Lets an affiliate save/update where they want withdrawals sent (Zelle,
+ *   Cash App, Venmo, or a crypto address). Required before a payout request
+ *   can be submitted. Proxies to vp-affiliates/v1/account/payout-info.
  *
- * Lets an affiliate save/update where they want withdrawals sent (Zelle,
- * Cash App, Venmo, or a crypto address). Required before a payout request
- * can be submitted.
+ * POST /api/affiliate-payout-info
+ *   Body: { code: string }
+ *   Lets an affiliate set/change their own referral+coupon code (always
+ *   editable). Proxies to vp-affiliates/v1/account/coupon-code.
  *
- * Requires the vp-affiliates plugin endpoint POST /vp-affiliates/v1/account/payout-info.
+ *   NOTE 2026-07-23: the coupon-code endpoint used to be its own file,
+ *   api/affiliate-coupon-code.ts. Merged in here instead — Vercel's Hobby
+ *   plan caps a deployment at 12 serverless functions, and this project was
+ *   already sitting exactly at that cap, so adding a 13th file broke the
+ *   build ("No more than 12 Serverless Functions..."). Dispatching on body
+ *   shape (code vs. payout_method/payout_destination) keeps this one file
+ *   doing both jobs. api/affiliate-coupon-code.ts is now excluded via
+ *   .vercelignore and kept only for reference.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -41,7 +52,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Server configuration error.' });
   }
 
-  const { payout_method, payout_destination } = req.body ?? {};
+  const body = (req.body ?? {}) as { code?: string; payout_method?: string; payout_destination?: string };
+
+  // Coupon-code flow (body has `code`, not payout fields).
+  if (typeof body.code === 'string' && !body.payout_method && !body.payout_destination) {
+    try {
+      const r = await fetch(`${WC_URL}/wp-json/vp-affiliates/v1/account/coupon-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code: body.code }),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      const data = await r.json().catch(() => ({}));
+
+      if (!r.ok) {
+        return res.status(r.status).json({ error: data.error || 'Failed to update your code.' });
+      }
+
+      return res.status(200).json({ success: true, ref_code: data.ref_code, coupon_code: data.coupon_code });
+    } catch (e) {
+      console.error('[affiliate-payout-info:coupon-code]', e);
+      return res.status(500).json({ error: 'Failed to update your code.' });
+    }
+  }
+
+  // Payout-info flow (existing behavior, unchanged).
+  const { payout_method, payout_destination } = body;
   if (!payout_method || !payout_destination) {
     return res.status(400).json({ error: 'Payout method and destination are required.' });
   }

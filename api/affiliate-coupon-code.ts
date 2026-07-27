@@ -1,4 +1,10 @@
 /**
+ * SUPERSEDED 2026-07-23 — kept for reference only, excluded via
+ * .vercelignore. This project was exactly at Vercel Hobby's 12-function cap
+ * before this file was added as a 13th, breaking the build. The logic below
+ * now lives inside api/affiliate-payout-info.ts instead (dispatches on body
+ * shape). See that file's handler.
+ *
  * POST /api/affiliate-coupon-code
  * Body: { code: string }
  *

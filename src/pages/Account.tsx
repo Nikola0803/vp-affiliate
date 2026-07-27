@@ -97,7 +97,9 @@ export default function Account() {
     }
     setCouponSaving(true);
     try {
-      const res = await fetch('/api/affiliate-coupon-code', {
+      // Merged into affiliate-payout-info.ts (dispatches on body shape) to
+      // stay under Vercel's 12-function cap — see .vercelignore.
+      const res = await fetch('/api/affiliate-payout-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),

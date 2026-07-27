@@ -1,0 +1,8 @@
+# Vercel Hobby plan caps a deployment at 12 serverless functions. This
+# project was exactly at that cap (12 files) before api/affiliate-coupon-code.ts
+# was added on 2026-07-23, breaking the build ("No more than 12 Serverless
+# Functions..."). Its logic now lives inside api/affiliate-payout-info.ts
+# (dispatches on body shape: { code } = set coupon code, { payout_method,
+# payout_destination } = existing payout-info flow). Kept in repo for
+# reference only.
+api/affiliate-coupon-code.ts
