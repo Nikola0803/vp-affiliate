@@ -162,162 +162,184 @@ export default function Home() {
 
   const { hero, stats, why, how, terms, compliance, footer } = content;
 
+  // BUG FIX 2026-07-25: the mockup file's own ".page" card (bordered,
+  // rounded, drop-shadowed, max-width, centered) is how that FILE presents
+  // multiple screens for review — it's not meant to be the live site's own
+  // layout. Every section below is now full-width (background/dividers run
+  // edge-to-edge); only the ".band-inner" wrapper inside each one caps
+  // content at a readable width, like a normal website.
   return (
     <div className="calibrate-landing">
       <div className="page">
         <nav className="site-nav">
-          <span className="brand-mark">
-            CALIBRATE<span className="sub">RESEARCH NETWORK</span>
-          </span>
-          <div className="links">
-            <button onClick={() => scrollToId('why')}>Program</button>
-            <button onClick={() => scrollToId('houses')}>Houses</button>
-            <button onClick={() => scrollToId('how')}>How It Works</button>
-            <button onClick={() => scrollToId('terms')}>Terms</button>
-          </div>
-          <div className="right">
-            <button className="linkbtn" onClick={() => scrollToId('houses')}>
-              Sign In
-            </button>
-            <button className="cta" onClick={() => scrollToId('houses')}>
-              Apply
-            </button>
+          <div className="band-inner">
+            <span className="brand-mark">
+              CALIBRATE<span className="sub">RESEARCH NETWORK</span>
+            </span>
+            <div className="links">
+              <button onClick={() => scrollToId('why')}>Program</button>
+              <button onClick={() => scrollToId('houses')}>Houses</button>
+              <button onClick={() => scrollToId('how')}>How It Works</button>
+              <button onClick={() => scrollToId('terms')}>Terms</button>
+            </div>
+            <div className="right">
+              <button className="linkbtn" onClick={() => scrollToId('houses')}>
+                Sign In
+              </button>
+              <button className="cta" onClick={() => scrollToId('houses')}>
+                Apply
+              </button>
+            </div>
           </div>
         </nav>
 
         {/* ── Hero ─────────────────────────────────────────────────────── */}
         <div className="hero">
           <div className="hero-glow" />
-          <div>
-            <span className="eyebrow">{hero.eyebrow}</span>
-            <h1 style={{ marginTop: 16 }}>
-              {hero.headline_prefix}
-              <span className="accent">{hero.headline_accent}</span>
-              {hero.headline_suffix}
-            </h1>
-            <p className="lede">{hero.body}</p>
-            <div className="cta-row">
-              <button className="cta" onClick={() => scrollToId('houses')}>
-                {hero.cta1_label}
-              </button>
-              <button className="cta ghost" onClick={() => scrollToId('houses')}>
-                {hero.cta2_label}
-              </button>
+          <div className="band-inner">
+            <div>
+              <span className="eyebrow">{hero.eyebrow}</span>
+              <h1 style={{ marginTop: 16 }}>
+                {hero.headline_prefix}
+                <span className="accent">{hero.headline_accent}</span>
+                {hero.headline_suffix}
+              </h1>
+              <p className="lede">{hero.body}</p>
+              <div className="cta-row">
+                <button className="cta" onClick={() => scrollToId('houses')}>
+                  {hero.cta1_label}
+                </button>
+                <button className="cta ghost" onClick={() => scrollToId('houses')}>
+                  {hero.cta2_label}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="collage" aria-hidden="true">
-            <div className="tile t1" />
-            <div className="tile t2" />
-            <div className="tile t3" />
-            <div className="tile t4" />
+            <div className="collage" aria-hidden="true">
+              <div className="tile t1" />
+              <div className="tile t2" />
+              <div className="tile t3" />
+              <div className="tile t4" />
+            </div>
           </div>
         </div>
 
         {/* ── Stats strip ──────────────────────────────────────────────── */}
         <div className="stripe">
-          {stats.map((s, i) => (
-            <div className="cell" key={i}>
-              <div className="n">{s.value}</div>
-              <div className="l">{s.label}</div>
-            </div>
-          ))}
+          <div className="band-inner">
+            {stats.map((s, i) => (
+              <div className="cell" key={i}>
+                <div className="n">{s.value}</div>
+                <div className="l">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── Why partners join ────────────────────────────────────────── */}
         <div className="band" id="why">
-          <span className="eyebrow">{why.eyebrow}</span>
-          <h2 style={{ marginTop: 10, fontSize: '1.75rem' }}>{why.headline}</h2>
-          <div className="why-grid">
-            {why.cards.map((c, i) => (
-              <div className="why-card" key={i}>
-                <div className="glyph">{c.glyph}</div>
-                <h3>{c.title}</h3>
-                <p>{c.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── How it works ─────────────────────────────────────────────── */}
-        <div className="band" id="how">
-          <span className="eyebrow">{how.eyebrow}</span>
-          <div className="how-grid">
-            {how.steps.map((step, i) => (
-              <div className="how-step" key={i}>
-                <div className="stepno">{String(i + 1).padStart(2, '0')}</div>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Houses (real login/apply picker) ─────────────────────────── */}
-        <div className="band" id="houses">
-          <span className="eyebrow">Choose your house</span>
-          <h2 style={{ marginTop: 10, fontSize: '1.6rem' }}>Accepted once, represented everywhere</h2>
-          <p style={{ color: '#98A0AC', fontSize: '0.9rem', marginTop: 10, maxWidth: '60ch', lineHeight: 1.6 }}>
-            Each house has its own affiliate account — pick the one you want to apply to or sign in to.
-          </p>
-          <div className="house-grid">
-            {houses.map((h) => (
-              <div key={h.id} className="house-card">
-                <div className="plate" />
-                <div className="inner">
-                  <h3>{h.name}</h3>
-                  <div className="desc">
-                    {h.siteUrl ? `Live now at ${h.siteUrl.replace(/^https?:\/\//, '')}` : 'Launching soon'}
-                  </div>
-                  <div className="status">
-                    <span className={`dot${h.siteUrl ? '' : ' soon'}`} />
-                    {h.siteUrl ? 'Accepting applications' : 'Not yet open'}
-                  </div>
-                  <div className="btn-row">
-                    <Link to={`/${h.id}/login`} className="cta ghost" style={{ padding: '8px 16px', fontSize: '0.72rem' }}>
-                      Sign In
-                    </Link>
-                    <Link to={`/${h.id}/register`} className="cta" style={{ padding: '8px 16px', fontSize: '0.72rem' }}>
-                      Apply
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Program terms + compliance ────────────────────────────────── */}
-        <div className="band" id="terms">
-          <span className="eyebrow">{terms.eyebrow}</span>
-          <div className="term-list">
-            {terms.rows.map((row, i) => (
-              <div className="term" key={i}>
-                <div className="k">{row.k}</div>
-                <div className="v">
-                  {row.v}
-                  {row.ex && <span className="ex">{row.ex}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="compliance-box">
-            <strong style={{ fontSize: '0.95rem' }}>{compliance.headline}</strong>
-            <p style={{ fontSize: '0.86rem', color: '#98A0AC', marginTop: 8, lineHeight: 1.6 }}>{compliance.body}</p>
-            <div className="checks">
-              {compliance.checks.map((chk, i) => (
-                <div className="chk" key={i}>
-                  <span className="box" />
-                  {chk}
+          <div className="band-inner">
+            <span className="eyebrow">{why.eyebrow}</span>
+            <h2 style={{ marginTop: 10, fontSize: '1.75rem' }}>{why.headline}</h2>
+            <div className="why-grid">
+              {why.cards.map((c, i) => (
+                <div className="why-card" key={i}>
+                  <div className="glyph">{c.glyph}</div>
+                  <h3>{c.title}</h3>
+                  <p>{c.body}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* ── How it works ─────────────────────────────────────────────── */}
+        <div className="band" id="how">
+          <div className="band-inner">
+            <span className="eyebrow">{how.eyebrow}</span>
+            <div className="how-grid">
+              {how.steps.map((step, i) => (
+                <div className="how-step" key={i}>
+                  <div className="stepno">{String(i + 1).padStart(2, '0')}</div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Houses (real login/apply picker) ─────────────────────────── */}
+        <div className="band" id="houses">
+          <div className="band-inner">
+            <span className="eyebrow">Choose your house</span>
+            <h2 style={{ marginTop: 10, fontSize: '1.6rem' }}>Accepted once, represented everywhere</h2>
+            <p style={{ color: '#98A0AC', fontSize: '0.9rem', marginTop: 10, maxWidth: '60ch', lineHeight: 1.6 }}>
+              Each house has its own affiliate account — pick the one you want to apply to or sign in to.
+            </p>
+            <div className="house-grid">
+              {houses.map((h) => (
+                <div key={h.id} className="house-card">
+                  <div className="plate" />
+                  <div className="inner">
+                    <h3>{h.name}</h3>
+                    <div className="desc">
+                      {h.siteUrl ? `Live now at ${h.siteUrl.replace(/^https?:\/\//, '')}` : 'Launching soon'}
+                    </div>
+                    <div className="status">
+                      <span className={`dot${h.siteUrl ? '' : ' soon'}`} />
+                      {h.siteUrl ? 'Accepting applications' : 'Not yet open'}
+                    </div>
+                    <div className="btn-row">
+                      <Link to={`/${h.id}/login`} className="cta ghost" style={{ padding: '8px 16px', fontSize: '0.72rem' }}>
+                        Sign In
+                      </Link>
+                      <Link to={`/${h.id}/register`} className="cta" style={{ padding: '8px 16px', fontSize: '0.72rem' }}>
+                        Apply
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Program terms + compliance ────────────────────────────────── */}
+        <div className="band" id="terms">
+          <div className="band-inner">
+            <span className="eyebrow">{terms.eyebrow}</span>
+            <div className="term-list">
+              {terms.rows.map((row, i) => (
+                <div className="term" key={i}>
+                  <div className="k">{row.k}</div>
+                  <div className="v">
+                    {row.v}
+                    {row.ex && <span className="ex">{row.ex}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="compliance-box">
+              <strong style={{ fontSize: '0.95rem' }}>{compliance.headline}</strong>
+              <p style={{ fontSize: '0.86rem', color: '#98A0AC', marginTop: 8, lineHeight: 1.6 }}>{compliance.body}</p>
+              <div className="checks">
+                {compliance.checks.map((chk, i) => (
+                  <div className="chk" key={i}>
+                    <span className="box" />
+                    {chk}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <footer className="pagefoot">
-          <span>{footer.left}</span>
-          <span>{footer.right}</span>
+          <div className="band-inner">
+            <span>{footer.left}</span>
+            <span>{footer.right}</span>
+          </div>
         </footer>
       </div>
     </div>

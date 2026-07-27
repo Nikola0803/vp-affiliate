@@ -68,14 +68,27 @@ button[class*="tracking-[0.15em] uppercase"] {
 .calibrate-landing .cta:hover{box-shadow:0 8px 24px rgba(215,168,75,0.35);transform:translateY(-1px);}
 .calibrate-landing .cta.ghost{background:transparent;color:#ECE8DE;border-color:#262D38;}
 .calibrate-landing .cta.ghost:hover{border-color:#D7A84B;box-shadow:none;transform:none;}
-.calibrate-landing .page{max-width:1200px;margin:0 auto;background:#171C24;border:1px solid #262D38;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.45);overflow:hidden;position:relative;}
+/* BUG FIX 2026-07-25: .page used to be a bordered, rounded-corner, drop-
+   shadowed CARD centered on the page — that's how the mockup FILE presents
+   it (a screen-switcher tool showing multiple framed mockup screens side by
+   side for review), but it's wrong for the actual live site, which should
+   read as a normal full-width website: each section's background/dividers
+   run edge-to-edge, only the CONTENT inside is width-capped (via
+   .band-inner below), not the whole page. */
+.calibrate-landing .page{width:100%;position:relative;}
+.calibrate-landing .band-inner{max-width:1200px;margin:0 auto;width:100%;}
 .calibrate-landing .house-btn{display:block;border:1.5px solid #262D38;border-radius:12px;padding:16px 18px;text-align:left;transition:border-color .15s ease;background:#1D232C;}
 .calibrate-landing .house-btn:hover{border-color:#D7A84B;}
 .calibrate-landing .house-btn .hb-name{font-family:"Avenir Next","Century Gothic","Futura",-apple-system,sans-serif;font-weight:700;font-size:1rem;color:#ECE8DE;}
 .calibrate-landing .house-btn .hb-sub{font-size:0.78rem;color:#98A0AC;margin-top:4px;}
 
 /* ── Restored mockup sections ────────────────────────────────────────────── */
-.calibrate-landing .site-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 52px;border-bottom:1px solid #262D38;flex-wrap:wrap;gap:12px;}
+/* Backgrounds/dividers on these outer elements now span the full viewport
+   width; each one's actual content lives in a nested .band-inner (max-width
+   1200px, centered) — see Home.tsx. Sticky nav also added since a real site
+   header should stay visible on scroll. */
+.calibrate-landing .site-nav{position:sticky;top:0;z-index:20;background:#0F1319;border-bottom:1px solid #262D38;}
+.calibrate-landing .site-nav .band-inner{display:flex;align-items:center;justify-content:space-between;padding:22px 52px;flex-wrap:wrap;gap:12px;}
 .calibrate-landing .site-nav .brand-mark{font-family:"Avenir Next","Century Gothic","Futura",-apple-system,sans-serif;font-size:1.15rem;letter-spacing:0.04em;}
 .calibrate-landing .site-nav .brand-mark .sub{display:block;font-family:"Consolas","SFMono-Regular","Courier New",monospace;font-size:0.6rem;letter-spacing:0.2em;color:#98A0AC;margin-top:2px;}
 .calibrate-landing .site-nav .links{display:flex;gap:26px;font-size:0.82rem;color:#98A0AC;}
@@ -84,14 +97,16 @@ button[class*="tracking-[0.15em] uppercase"] {
 .calibrate-landing .site-nav .right{display:flex;gap:14px;align-items:center;}
 .calibrate-landing .linkbtn{background:none;border:none;color:#98A0AC;font-size:0.82rem;cursor:pointer;}
 .calibrate-landing .linkbtn:hover{color:#ECE8DE;}
-@media (max-width:760px){.calibrate-landing .site-nav{padding:16px 22px;}.calibrate-landing .site-nav .links{display:none;}}
+@media (max-width:760px){.calibrate-landing .site-nav .band-inner{padding:16px 22px;}.calibrate-landing .site-nav .links{display:none;}}
 
-.calibrate-landing .band{padding:66px 52px;position:relative;}
+.calibrate-landing .band{position:relative;background:#0F1319;}
+.calibrate-landing .band .band-inner{padding:66px 52px;}
 .calibrate-landing .band + .band{border-top:1px solid #262D38;}
-@media (max-width:760px){.calibrate-landing .band{padding:44px 22px;}}
+@media (max-width:760px){.calibrate-landing .band .band-inner{padding:44px 22px;}}
 
-.calibrate-landing .hero{padding:70px 52px 20px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:54px;align-items:center;position:relative;}
-@media (max-width:900px){.calibrate-landing .hero{grid-template-columns:1fr;padding:44px 22px 10px;}}
+.calibrate-landing .hero{position:relative;background:#0F1319;}
+.calibrate-landing .hero .band-inner{padding:70px 52px 20px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:54px;align-items:center;}
+@media (max-width:900px){.calibrate-landing .hero .band-inner{grid-template-columns:1fr;padding:44px 22px 10px;}}
 .calibrate-landing .hero-glow{position:absolute;top:-120px;right:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle, rgba(215,168,75,0.16), transparent 70%);filter:blur(10px);pointer-events:none;}
 .calibrate-landing .hero h1{font-size:2.85rem;line-height:1.12;}
 .calibrate-landing .hero h1 .accent{color:#D7A84B;}
@@ -108,12 +123,13 @@ button[class*="tracking-[0.15em] uppercase"] {
 .calibrate-landing .tile.t4{width:40%;height:38%;bottom:0;right:6%;border-radius:40% 16px 16px 16px;background:conic-gradient(from 210deg, #D7A84B, #171C24 55%, #4FB8A6);}
 @media (max-width:900px){.calibrate-landing .tile.t2,.calibrate-landing .tile.t3{display:none;}}
 
-.calibrate-landing .stripe{display:flex;border-top:1px solid #262D38;border-bottom:1px solid #262D38;}
+.calibrate-landing .stripe{border-top:1px solid #262D38;border-bottom:1px solid #262D38;background:#0F1319;}
+.calibrate-landing .stripe .band-inner{display:flex;}
 .calibrate-landing .stripe .cell{flex:1;padding:26px 28px;border-right:1px solid #262D38;}
 .calibrate-landing .stripe .cell:last-child{border-right:none;}
 .calibrate-landing .stripe .cell .n{font-family:"Avenir Next","Century Gothic","Futura",-apple-system,sans-serif;font-size:1.8rem;color:#D7A84B;}
 .calibrate-landing .stripe .cell .l{font-size:0.78rem;color:#98A0AC;margin-top:4px;}
-@media (max-width:760px){.calibrate-landing .stripe{flex-direction:column;}.calibrate-landing .stripe .cell{border-right:none;border-bottom:1px solid #262D38;}}
+@media (max-width:760px){.calibrate-landing .stripe .band-inner{flex-direction:column;}.calibrate-landing .stripe .cell{border-right:none;border-bottom:1px solid #262D38;}}
 
 .calibrate-landing .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:34px;}
 @media (max-width:900px){.calibrate-landing .why-grid{grid-template-columns:1fr 1fr;}}
@@ -157,5 +173,6 @@ button[class*="tracking-[0.15em] uppercase"] {
 .calibrate-landing .compliance-box .chk .box{width:15px;height:15px;border:1.5px solid #4FB8A6;border-radius:4px;margin-top:2px;flex-shrink:0;position:relative;}
 .calibrate-landing .compliance-box .chk .box::after{content:"";position:absolute;left:3px;top:0px;width:5px;height:9px;border:solid #4FB8A6;border-width:0 2px 2px 0;transform:rotate(45deg);}
 
-.calibrate-landing footer.pagefoot{padding:30px 52px;display:flex;justify-content:space-between;color:#98A0AC;font-size:0.76rem;flex-wrap:wrap;gap:8px;}
-@media (max-width:760px){.calibrate-landing footer.pagefoot{padding:22px 22px;flex-direction:column;}}
+.calibrate-landing footer.pagefoot{border-top:1px solid #262D38;background:#0F1319;}
+.calibrate-landing footer.pagefoot .band-inner{padding:30px 52px;display:flex;justify-content:space-between;color:#98A0AC;font-size:0.76rem;flex-wrap:wrap;gap:8px;}
+@media (max-width:760px){.calibrate-landing footer.pagefoot .band-inner{padding:22px 22px;flex-direction:column;}}
